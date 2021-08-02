@@ -93,12 +93,16 @@ def interpolate(
     :return:
     """
 
-    print(f"{before.time=}")
-    print(f"{before.time!r}")
-    print(f"{dt=}")
-    print(f"{after.time=}")
+    # print(f"{before.time=}")
+    # print(f"{before.time!r}")
+    # print(f"{dt=}")
+    # print(f"{after.time=}")
 
     assert before.time <= dt <= after.time, f"{before=} <= {dt=} <= {after=}"
+
+    if before == after:
+        return before
+
     ratio = 1.0 * (dt - before.time).seconds / (after.time - before.time).seconds
 
     return GPXTrackPoint(
@@ -185,6 +189,7 @@ def adjust_main(
     for img_file in sorted(Path(img_dir).glob(f"*.{img_suffix}")):
         print(f"Processing Image File {img_file}")
         img = None
+        error = False
         with open(img_file, "rb") as img_fh:
             img = Image(img_fh)
             print(f"{img_file=} => {img.exif_version}")
@@ -218,14 +223,19 @@ def adjust_main(
                 continue
 
             print(f"DT: {exif_dt=}; B: {before=}; A: {after=}")
-            adjust_image(
-                img,
-                interpolate(gpx_points[before][0], gpx_points[after][0], exif_dt),
-            )
+            try:
+                adjust_image(
+                    img,
+                    interpolate(gpx_points[before][0], gpx_points[after][0], exif_dt),
+                )
+            except RuntimeError as e:
+                print(f"{img_file} - ERROR - {e}")
+                error = True
 
-        with open(img_file, "wb") as img_fh_w:
-            assert img is not None
-            img_fh_w.write(img.get_file())
+        if not error:
+            with open(img_file, "wb") as img_fh_w:
+                assert img is not None
+                img_fh_w.write(img.get_file())
 
 
 if __name__ == "__main__":
