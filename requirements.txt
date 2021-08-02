@@ -1,2 +1,3 @@
+exif
 fire
 gpxpy
